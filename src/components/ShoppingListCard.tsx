@@ -8,20 +8,27 @@ import ListActions from "./ListActions";
 
 export default function ShoppingListCard({
   list,
-  onArchive, onUnarchive, onDelete,
+  onArchive,
+  onUnarchive,
+  onDelete,
 }: {
   list: ShoppingList;
-  onArchive: (id:string)=>void;
-  onUnarchive: (id:string)=>void;
-  onDelete: (id:string)=>void;
+  onArchive: (id: string) => void;
+  onUnarchive: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const role = getRole(list, CURRENT_USER_ID);
-  const ownerName = USERS.find(u => u.id === list.ownerId)?.name ?? "—";
+  const ownerName =
+    USERS.find((u) => u.id === list.ownerId)?.name ?? "—";
   const isOwner = role === "owner";
+
   return (
     <div className="bg-white rounded-2xl border p-4 flex items-start justify-between gap-4">
       <div>
-        <Link href={`/lists/${list.id}`} className="font-semibold hover:underline">
+        <Link
+          href={`/shopping-lists/${list.id}`}
+          className="font-semibold hover:underline"
+        >
           {list.name}
         </Link>
         <div className="text-sm text-gray-600 mt-1">
@@ -32,6 +39,7 @@ export default function ShoppingListCard({
           <RoleBadge role={role} />
         </div>
       </div>
+
       <ListActions
         isOwner={isOwner}
         status={list.status}

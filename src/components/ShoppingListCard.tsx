@@ -10,16 +10,15 @@ export default function ShoppingListCard({
   list,
   onArchive,
   onUnarchive,
-  onDelete,
+  onDeleted,
 }: {
   list: ShoppingList;
   onArchive: (id: string) => void;
   onUnarchive: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDeleted: () => void; // parent refresh listů po delete
 }) {
   const role = getRole(list, CURRENT_USER_ID);
-  const ownerName =
-    USERS.find((u) => u.id === list.ownerId)?.name ?? "—";
+  const ownerName = USERS.find((u) => u.id === list.ownerId)?.name ?? "—";
   const isOwner = role === "owner";
 
   return (
@@ -31,9 +30,11 @@ export default function ShoppingListCard({
         >
           {list.name}
         </Link>
+
         <div className="text-sm text-gray-600 mt-1">
           Owner: {ownerName} • Members: {list.memberIds.length}
         </div>
+
         <div className="mt-2 flex items-center gap-2">
           <StatusBadge status={list.status} />
           <RoleBadge role={role} />
@@ -43,9 +44,10 @@ export default function ShoppingListCard({
       <ListActions
         isOwner={isOwner}
         status={list.status}
+        listId={list.id}
         onArchive={() => onArchive(list.id)}
         onUnarchive={() => onUnarchive(list.id)}
-        onDelete={() => onDelete(list.id)}
+        onDeleted={onDeleted}
       />
     </div>
   );

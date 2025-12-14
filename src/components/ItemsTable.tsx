@@ -11,6 +11,7 @@ type Props = {
 
   onEdit?: (id: string) => void;
   onBulkResolve?: (ids: string[]) => void;
+  resolveLabel?: string;
   onBulkDelete?: (ids: string[]) => void;
 };
 
@@ -22,11 +23,11 @@ export default function ItemsTable({
   onClear,
   onEdit,
   onBulkResolve,
+  resolveLabel,
   onBulkDelete,
 }: Props) {
   const readOnly = disabled;
 
-  // když je readOnly, akce i výběr úplně vypneme
   const selCount = readOnly ? 0 : selected.size;
   const ids = React.useMemo(
     () => (readOnly ? [] : Array.from(selected)),
@@ -47,7 +48,6 @@ export default function ItemsTable({
 
   return (
     <div className="space-y-3">
-      {/* Akční lišta – jen když je něco vybrané a tabulka není readOnly */}
       {hasActions && selCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-white px-3 py-2">
           <span className="text-sm text-gray-600">{selCount} selected</span>
@@ -71,7 +71,7 @@ export default function ItemsTable({
                 onClick={() => onBulkResolve(ids)}
                 className="rounded-lg border bg-white px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Mark as completed
+                {resolveLabel ?? "Mark as completed"}
               </button>
             )}
 

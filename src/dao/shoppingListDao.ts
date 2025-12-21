@@ -12,7 +12,20 @@ type ShoppingListDb = {
   createdAt: Date;
 };
 
-export async function create(input: { ownerId: string; name: string; members: string[] }) {
+type ListInput = {
+  ownedOnly: boolean;
+  includeArchived: boolean;
+  pageIndex: number;
+  pageSize: number;
+  name?: string; // substring (case-insensitive)
+  memberId?: string; // list contains this member
+};
+
+export async function create(input: {
+  ownerId: string;
+  name: string;
+  members: string[];
+}) {
   const db = await getDb();
   const col = db.collection<ShoppingListDb>("shoppingList");
 
@@ -65,22 +78,30 @@ export async function get(input: { id: string }) {
   };
 }
 
-export async function list(input: {
-  ownedOnly: boolean;
-  includeArchived: boolean;
-  pageIndex: number;
-  pageSize: number;
-}) {
+export async function list(input: ListInput) {
   const db = await getDb();
   const col = db.collection<ShoppingListDb>("shoppingList");
 
-  const filter: any = { awid: AWID };
+  const filter: Record<string, any> = { awid: AWID };
 
+  // ownership filter
   if (input.ownedOnly) {
     filter.ownerId = CURRENT_USER_ID;
   }
+
+  // archived filter
   if (!input.includeArchived) {
     filter.isArchived = false;
+  }
+
+  // name filter (case-insensitive substring)
+  if (input.name && input.name.trim()) {
+    filter.name = { $regex: input.name.trim(), $options: "i" };
+  }
+
+  // member filter (member contained in members array)
+  if (input.memberId && input.memberId.trim()) {
+    filter.members = input.memberId.trim();
   }
 
   const total = await col.countDocuments(filter);
@@ -184,10 +205,7 @@ function makeIdFilter(id: string) {
   const idAsObjectId = ObjectId.isValid(id) ? new ObjectId(id) : null;
   return {
     awid: AWID,
-    $or: [
-      ...(idAsObjectId ? [{ _id: idAsObjectId }] : []),
-      { id },
-    ],
+    $or: [...(idAsObjectId ? [{ _id: idAsObjectId }] : []), { id }],
   } as any;
 }
 
@@ -223,7 +241,7 @@ export async function updateName(input: { id: string; name: string }) {
     { returnDocument: "after" }
   );
 
-  const doc = (res as any)?.value ?? res; // pro kompatibilitu s typy
+  const doc = (res as any)?.value ?? res;
   if (!doc) throw new Error("Shopping list not found");
 
   return mapOut(doc);

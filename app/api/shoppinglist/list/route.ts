@@ -21,13 +21,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const allowedKeys = ["ownedOnly", "includeArchived"];
+  const allowedKeys = ["ownedOnly", "includeArchived", "name", "memberId", "pageInfo"];
   const uuAppErrorMap = buildUnsupportedKeysMap(dtoIn, allowedKeys);
 
-  const ownedOnlyOk = typeof dtoIn.ownedOnly === "boolean";
-  const includeArchivedOk = typeof dtoIn.includeArchived === "boolean";
+  // defaults
+  const ownedOnly = dtoIn.ownedOnly ?? false;
+  const includeArchived = dtoIn.includeArchived ?? false;
 
-  if (!ownedOnlyOk || !includeArchivedOk) {
+  // optional filters
+  const name = dtoIn.name;
+  const memberId = dtoIn.memberId;
+
+  // pagination defaults
+  const pageInfoIn = isObject(dtoIn.pageInfo) ? dtoIn.pageInfo : undefined;
+  const pageIndex = pageInfoIn?.pageIndex ?? 0;
+  const pageSizeRaw = pageInfoIn?.pageSize ?? 50;
+  const pageSize = Math.min(pageSizeRaw, 200);
+
+  // validation
+  const ownedOnlyOk = typeof ownedOnly === "boolean";
+  const includeArchivedOk = typeof includeArchived === "boolean";
+
+  const nameOk = name === undefined || (typeof name === "string" && name.trim().length > 0);
+  const memberIdOk = memberId === undefined || (typeof memberId === "string" && memberId.trim().length > 0);
+
+  const pageIndexOk = Number.isInteger(pageIndex) && pageIndex >= 0;
+  const pageSizeOk = Number.isInteger(pageSizeRaw) && pageSizeRaw >= 1 && pageSizeRaw <= 200;
+
+  const pageInfoTypeOk = dtoIn.pageInfo === undefined || isObject(dtoIn.pageInfo);
+
+  if (
+    !ownedOnlyOk ||
+    !includeArchivedOk ||
+    !nameOk ||
+    !memberIdOk ||
+    !pageInfoTypeOk ||
+    !pageIndexOk ||
+    !pageSizeOk
+  ) {
     return NextResponse.json(
       { code: "invalidDtoIn", message: "DtoIn is not valid.", uuAppErrorMap },
       { status: 400 }
@@ -35,12 +66,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const pageIndex = 0;
-    const pageSize = 50;
-
     const { itemList, total } = await shoppingListDao.list({
-      ownedOnly: dtoIn.ownedOnly,
-      includeArchived: dtoIn.includeArchived,
+      ownedOnly,
+      includeArchived,
+      name: name?.trim(),
+      memberId: memberId?.trim(),
       pageIndex,
       pageSize,
     });

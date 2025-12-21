@@ -1,0 +1,17 @@
+type: environment.insomnia.rest/5.0
+schema_version: "5.1"
+name: local
+meta:
+  id: wrk_cde8863ef95448a7bd896b912933798b
+  created: 1766333963926
+  modified: 1766334954278
+  description: ""
+environments:
+  name: Base Environment
+  meta:
+    id: env_eb05315cc6d76d663c163d4c62edaa8b7423b04e
+    created: 1766333963929
+    modified: 1766336476203
+    isPrivate: false
+  data:
+    baseUrl: http://localhost:3000/api

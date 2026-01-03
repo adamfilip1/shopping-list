@@ -1,7 +1,14 @@
 import { randomUUID } from "crypto";
-import { AWID, CURRENT_USER_ID } from "@/lib/constants";
 
-export type ShoppingListMock = {
+/**
+ * simple in-memory databáze pro MOCK DAO
+ * Používá se v unit testech a při USE_MOCK_DATA !== "false"
+ */
+
+export const AWID = "mock-awid";
+export const CURRENT_USER_ID = "6770b0cd123456789000001";
+
+export type ShoppingListRecord = {
   awid: string;
   id: string;
   ownerId: string;
@@ -11,54 +18,58 @@ export type ShoppingListMock = {
   createdAt: string;
 };
 
-export type ItemMock = {
-  id: string;
+export type ShoppingListItemRecord = {
   awid: string;
+  id: string;
   listId: string;
   name: string;
   quantity: number;
-  status: "open" | "completed";
+  status: "open" | "done";
   createdBy: string;
   completedBy: string | null;
   createdAt: string;
   completedAt: string | null;
 };
 
-export type MockDb = {
-  shoppingLists: Map<string, ShoppingListMock>;
-  items: Map<string, ItemMock>;
-  __seeded?: boolean;
+/**
+ * Vlastní "DB"
+ */
+export const mockDb = {
+  shoppingLists: new Map<string, ShoppingListRecord>(),
+  items: new Map<string, ShoppingListItemRecord>(),
 };
 
-function nowIso() {
+/**
+ * Pomocná funkce – ISO timestamp
+ */
+function nowIso(): string {
   return new Date().toISOString();
 }
 
-const g = globalThis as unknown as { __mockDb?: MockDb };
-
-export const mockDb: MockDb =
-  g.__mockDb ??
-  (g.__mockDb = {
-    shoppingLists: new Map<string, ShoppingListMock>(),
-    items: new Map<string, ItemMock>(),
-    __seeded: false,
-  });
-
-export function ensureSeed() {
-  if (mockDb.__seeded) return;
-
+/**
+ * Seedne DB výchozími daty
+ * - používá se při startu aplikace
+ * - používá se v testech po resetu
+ */
+export function seedMockDb() {
   const listId = randomUUID();
+
   mockDb.shoppingLists.set(listId, {
     awid: AWID,
     id: listId,
     ownerId: CURRENT_USER_ID,
     name: "BBQ party",
-    members: ["6770b0cd123456789000002", "6770b0cd123456789000003"],
+    members: [
+      CURRENT_USER_ID,
+      "6770b0cd123456789000002",
+      "6770b0cd123456789000003",
+    ],
     isArchived: false,
     createdAt: nowIso(),
   });
 
   const itemId = randomUUID();
+
   mockDb.items.set(itemId, {
     awid: AWID,
     id: itemId,
@@ -72,5 +83,25 @@ export function ensureSeed() {
     completedAt: null,
   });
 
-  mockDb.__seeded = true;
+  return {
+    listId,
+    itemId,
+  };
 }
+
+/**
+ * RESET databáze – KLÍČOVÉ PRO UNIT TESTY
+ * - vyčistí DB
+ * - znovu seedne výchozí data
+ */
+export function resetMockDb() {
+  mockDb.shoppingLists.clear();
+  mockDb.items.clear();
+  return seedMockDb();
+}
+
+/**
+ * Zachová původní chování aplikace:
+ * při importu souboru se DB automaticky seedne
+ */
+seedMockDb();

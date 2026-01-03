@@ -1,12 +1,10 @@
 import { AWID, CURRENT_USER_ID } from "@/lib/constants";
 import { randomUUID } from "crypto";
-import { mockDb, ensureSeed } from "@/dao/mockDb";
+import { mockDb } from "@/dao/mockDb";
 
-type ItemStatus = "open" | "completed";
+type ItemStatus = "open" | "done";
 
 export async function listByListId(input: { listId: string }) {
-  ensureSeed();
-
   const items = Array.from(mockDb.items.values()).filter(
     (i) => i.awid === AWID && i.listId === input.listId
   );
@@ -28,8 +26,6 @@ export async function listByListId(input: { listId: string }) {
 }
 
 export async function add(input: { listId: string; name: string; quantity: number }) {
-  ensureSeed();
-
   const now = new Date().toISOString();
   const id = randomUUID();
 
@@ -41,9 +37,9 @@ export async function add(input: { listId: string; name: string; quantity: numbe
     quantity: input.quantity,
     status: "open" as const,
     createdBy: CURRENT_USER_ID,
-    completedBy: null,
+    completedBy: null as string | null,
     createdAt: now,
-    completedAt: null,
+    completedAt: null as string | null,
   };
 
   mockDb.items.set(id, item);
@@ -51,35 +47,34 @@ export async function add(input: { listId: string; name: string; quantity: numbe
 }
 
 export async function update(input: { id: string; name: string; quantity: number }) {
-  ensureSeed();
-
   const item = mockDb.items.get(input.id);
   if (!item || item.awid !== AWID) {
     throw new Error("Item not found");
   }
 
-  item.name = input.name;
-  item.quantity = input.quantity;
+  const updated = {
+    ...item,
+    name: input.name,
+    quantity: input.quantity,
+  };
 
-  mockDb.items.set(item.id, item);
+  mockDb.items.set(updated.id, updated);
 
   return {
-    awid: item.awid,
-    id: item.id,
-    listId: item.listId,
-    name: item.name,
-    quantity: item.quantity,
-    status: item.status,
-    createdBy: item.createdBy,
-    completedBy: item.completedBy,
-    createdAt: item.createdAt,
-    completedAt: item.completedAt,
+    awid: updated.awid,
+    id: updated.id,
+    listId: updated.listId,
+    name: updated.name,
+    quantity: updated.quantity,
+    status: updated.status as ItemStatus,
+    createdBy: updated.createdBy,
+    completedBy: updated.completedBy,
+    createdAt: updated.createdAt,
+    completedAt: updated.completedAt,
   };
 }
 
 export async function remove(input: { id: string }) {
-  ensureSeed();
-
   const item = mockDb.items.get(input.id);
   if (!item || item.awid !== AWID) {
     throw new Error("Item not found");
@@ -94,8 +89,6 @@ export async function remove(input: { id: string }) {
 }
 
 export async function markComplete(input: { id: string; completed: boolean }) {
-  ensureSeed();
-
   const item = mockDb.items.get(input.id);
   if (!item || item.awid !== AWID) {
     throw new Error("Item not found");
@@ -103,29 +96,33 @@ export async function markComplete(input: { id: string; completed: boolean }) {
 
   const now = new Date().toISOString();
 
-  if (input.completed) {
-    item.status = "completed";
-    item.completedBy = CURRENT_USER_ID;
-    item.completedAt = now;
-  } else {
-    item.status = "open";
-    item.completedBy = null;
-    item.completedAt = null;
-  }
+  const updated = input.completed
+    ? {
+        ...item,
+        status: "done" as const,
+        completedBy: CURRENT_USER_ID,
+        completedAt: now,
+      }
+    : {
+        ...item,
+        status: "open" as const,
+        completedBy: null,
+        completedAt: null,
+      };
 
-  mockDb.items.set(item.id, item);
+  mockDb.items.set(updated.id, updated);
 
   return {
-    awid: item.awid,
-    id: item.id,
-    listId: item.listId,
-    name: item.name,
-    quantity: item.quantity,
-    status: item.status,
-    createdBy: item.createdBy,
-    completedBy: item.completedBy,
-    createdAt: item.createdAt,
-    completedAt: item.completedAt,
+    awid: updated.awid,
+    id: updated.id,
+    listId: updated.listId,
+    name: updated.name,
+    quantity: updated.quantity,
+    status: updated.status as ItemStatus,
+    createdBy: updated.createdBy,
+    completedBy: updated.completedBy,
+    createdAt: updated.createdAt,
+    completedAt: updated.completedAt,
     uuAppErrorMap: {},
   };
 }

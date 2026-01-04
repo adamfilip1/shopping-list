@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type Language = "en" | "cs";
 
@@ -15,19 +15,25 @@ const translations: Translations = {
   // Navigation
   "nav.backToLists": { en: "← Back to lists", cs: "← Zpět na seznamy" },
   "nav.shoppingLists": { en: "Shopping lists", cs: "Nákupní seznamy" },
-  
+
   // Overview page
   "overview.title": { en: "Shopping lists", cs: "Nákupní seznamy" },
-  "overview.description": { en: "Overview of all shopping lists. Click a tile to open its detail.", cs: "Přehled všech nákupních seznamů. Klikněte na dlaždici pro otevření detailu." },
+  "overview.description": {
+    en: "Overview of all shopping lists. Click a tile to open its detail.",
+    cs: "Přehled všech nákupních seznamů. Klikněte na dlaždici pro otevření detailu.",
+  },
   "overview.newList": { en: "+ New list", cs: "+ Nový seznam" },
   "overview.filterAll": { en: "All", cs: "Vše" },
   "overview.filterActive": { en: "Active", cs: "Aktivní" },
   "overview.filterArchived": { en: "Archived", cs: "Archivované" },
-  "overview.noLists": { en: "No shopping lists for this filter. Use \"+ New list\" to create one.", cs: "Žádné nákupní seznamy pro tento filtr. Použijte \"+ Nový seznam\" pro vytvoření." },
+  "overview.noLists": {
+    en: 'No shopping lists for this filter. Use "+ New list" to create one.',
+    cs: 'Žádné nákupní seznamy pro tento filtr. Použijte "+ Nový seznam" pro vytvoření.',
+  },
   "overview.loading": { en: "Loading…", cs: "Načítání…" },
   "overview.itemsPerList": { en: "Items per List", cs: "Položky na seznam" },
   "overview.itemsCount": { en: "Items", cs: "Položky" },
-  
+
   // Detail page
   "detail.listId": { en: "List ID", cs: "ID seznamu" },
   "detail.owner": { en: "Owner", cs: "Vlastník" },
@@ -40,7 +46,7 @@ const translations: Translations = {
   "detail.save": { en: "Save", cs: "Uložit" },
   "detail.cancel": { en: "Cancel", cs: "Zrušit" },
   "detail.nameRequired": { en: "Name is required.", cs: "Název je povinný." },
-  
+
   // Items section
   "items.title": { en: "Items", cs: "Položky" },
   "items.filter": { en: "Filter", cs: "Filtr" },
@@ -64,23 +70,23 @@ const translations: Translations = {
   "items.productNamePlaceholder": { en: "Product name…", cs: "Název produktu…" },
   "items.editItemTitle": { en: "Edit item", cs: "Upravit položku" },
   "items.deleteConfirm": { en: "Delete {count} item(s)?", cs: "Smazat {count} položku/položky?" },
-  
+
   // Statistics
   "stats.itemsStatus": { en: "Items Status", cs: "Stav položek" },
   "stats.resolved": { en: "Resolved", cs: "Vyřešené" },
   "stats.unresolved": { en: "Unresolved", cs: "Nevyřešené" },
-  
+
   // Members section
   "members.title": { en: "Members", cs: "Členové" },
   "members.members": { en: "Members", cs: "Členové" },
-  
+
   // Create modal
   "create.title": { en: "New shopping list", cs: "Nový nákupní seznam" },
   "create.name": { en: "Name", cs: "Název" },
   "create.create": { en: "Create", cs: "Vytvořit" },
   "create.creating": { en: "Creating…", cs: "Vytváření…" },
   "create.nameRequired": { en: "Name is required.", cs: "Název je povinný." },
-  
+
   // Common
   "common.loading": { en: "Loading…", cs: "Načítání…" },
   "common.error": { en: "Error", cs: "Chyba" },
@@ -95,47 +101,48 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("language") as Language | null;
-      if (saved && (saved === "en" || saved === "cs")) {
-        return saved;
-      }
-    }
-    return "en";
-  });
-  const [mounted, setMounted] = useState(false);
+const STORAGE_KEY = "language";
+const DEFAULT_LANGUAGE: Language = "en";
 
+export function I18nProvider({ children }: { children: React.ReactNode }) {
+  // IMPORTANT: SSR + first client render must match -> always start with DEFAULT_LANGUAGE
+  const [language, setLanguageState] = useState<Language>(DEFAULT_LANGUAGE);
+
+  // Load from localStorage only AFTER mount (prevents hydration mismatch)
   useEffect(() => {
-    setMounted(true);
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "en" || saved === "cs") {
+      setLanguageState(saved);
+      return;
+    }
+
+    // Optional: set default by browser language, but only after mount
+    const browser = (navigator.language || "").toLowerCase();
+    if (browser.startsWith("cs")) setLanguageState("cs");
   }, []);
 
+  // Persist
   useEffect(() => {
-    if (typeof window !== "undefined" && mounted) {
-      localStorage.setItem("language", language);
-    }
-  }, [language, mounted]);
+    localStorage.setItem(STORAGE_KEY, language);
+  }, [language]);
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-  };
+  const setLanguage = (lang: Language) => setLanguageState(lang);
 
-  const t = (key: string, params?: Record<string, string | number>): string => {
-    const translation = translations[key]?.[language] || key;
-    if (params) {
-      return translation.replace(/\{(\w+)\}/g, (_, paramKey) => {
-        return params[paramKey]?.toString() || `{${paramKey}}`;
+  const t = useMemo(() => {
+    return (key: string, params?: Record<string, string | number>) => {
+      const translation = translations[key]?.[language] ?? key;
+      if (!params) return translation;
+
+      return translation.replace(/\{(\w+)\}/g, (_, paramKey: string) => {
+        const v = params[paramKey];
+        return v === undefined || v === null ? `{${paramKey}}` : String(v);
       });
-    }
-    return translation;
-  };
+    };
+  }, [language]);
 
-  return (
-    <I18nContext.Provider value={{ language, setLanguage, t }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  const value = useMemo(() => ({ language, setLanguage, t }), [language, t]);
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {
@@ -145,4 +152,3 @@ export function useI18n() {
   }
   return context;
 }
-

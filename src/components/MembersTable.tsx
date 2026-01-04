@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { USERS, CURRENT_USER_ID } from "@/lib/data";
 import { api } from "@/lib/api-client";
+import { useI18n } from "@/contexts/I18nContext";
 
 export default function MembersTable({
   listId,
@@ -19,6 +20,7 @@ export default function MembersTable({
   canLeave: boolean;  // member & !archived
   onChanged: () => void; // parent refresh
 }) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
 
   const options = USERS.filter((u) => !memberIds.includes(u.id));
@@ -58,9 +60,9 @@ export default function MembersTable({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border bg-white">
+      <div className="overflow-x-auto rounded-xl border dark:border-gray-700 bg-white dark:bg-[#1a1a1a]">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
+          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
             <tr>
               <th className="px-4 py-2 text-left">Name</th>
               <th className="px-4 py-2 text-left">Role</th>
@@ -76,15 +78,15 @@ export default function MembersTable({
               const removable = canManage && id !== ownerId;
 
               return (
-                <tr key={id} className="border-t">
-                  <td className="px-4 py-2">{u.name}</td>
-                  <td className="px-4 py-2">{role}</td>
+                <tr key={id} className="border-t dark:border-gray-700">
+                  <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{u.name}</td>
+                  <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{role}</td>
                   <td className="px-4 py-2 text-right">
                     {removable && (
                       <button
                         disabled={loading}
                         onClick={() => removeMember(id)}
-                        className="text-red-600 disabled:opacity-50"
+                        className="text-red-600 dark:text-red-400 disabled:opacity-50"
                       >
                         Remove
                       </button>
@@ -101,7 +103,7 @@ export default function MembersTable({
         {canManage && (
           <select
             disabled={loading}
-            className="bg-white border rounded-xl px-3 py-2 disabled:opacity-50"
+            className="bg-white dark:bg-[#0a0a0a] border dark:border-gray-700 rounded-xl px-3 py-2 disabled:opacity-50 text-gray-900 dark:text-gray-100"
             defaultValue=""
             onChange={(e) => {
               const v = e.target.value;
@@ -122,7 +124,7 @@ export default function MembersTable({
           <button
             disabled={loading}
             onClick={leaveList}
-            className="px-3 py-2 rounded-xl border bg-white disabled:opacity-50"
+            className="px-3 py-2 rounded-xl border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50"
           >
             Leave list
           </button>

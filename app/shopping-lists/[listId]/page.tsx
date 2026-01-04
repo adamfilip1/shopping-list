@@ -11,6 +11,9 @@ import RoleBadge from "@/components/RoleBadge";
 import ItemAddForm from "@/components/ItemAddForm";
 import ItemsTable from "@/components/ItemsTable";
 import MembersTable from "@/components/MembersTable";
+import ItemsStatusChart from "@/components/ItemsStatusChart";
+import Header from "@/components/Header";
+import { useI18n } from "@/contexts/I18nContext";
 
 function Section({
   title,
@@ -22,12 +25,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-white rounded-2xl border mb-6">
-      <div className="border-b px-5 py-3 flex items-center justify-between">
-        <div className="font-semibold">{title}</div>
-        {right}
+    <section className="bg-white dark:bg-[#1a1a1a] rounded-2xl border dark:border-gray-700 mb-6">
+      <div className="border-b dark:border-gray-700 px-4 sm:px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="font-semibold text-gray-900 dark:text-gray-100">{title}</div>
+        {right && <div className="w-full sm:w-auto">{right}</div>}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </section>
   );
 }
@@ -57,6 +60,7 @@ function mapServerListToUi(l: any): ShoppingList {
 
 export default function Page() {
   const { listId } = useParams<{ listId: string }>();
+  const { t } = useI18n();
 
   const [list, setList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,7 +113,7 @@ export default function Page() {
     if (!list || !isOwner || archived || savingName) return;
     const next = editName.trim();
     if (!next) {
-      setNameError("Name is required.");
+      setNameError(t("detail.nameRequired"));
       return;
     }
 
@@ -197,7 +201,7 @@ export default function Page() {
   }, [list, selected]);
 
   const hasAnyOpenSelected = selectedItems.some((i) => i.state === "open");
-  const resolveLabel = hasAnyOpenSelected ? "Mark as completed" : "Mark as undone";
+  const resolveLabel = hasAnyOpenSelected ? t("items.markCompleted") : t("items.markUndone");
 
   async function bulkResolve(ids: string[]) {
     if (!canEditItems || !list) return;
@@ -205,8 +209,6 @@ export default function Page() {
     const selectedNow = list.items.filter((i) => ids.includes(i.id));
     const hasAnyOpen = selectedNow.some((i) => i.state === "open");
 
-    // pokud je aspoň jedna open -> dokončíme všechny
-    // pokud jsou všechny done -> vrátíme všechny na open
     const nextCompleted = hasAnyOpen;
 
     await Promise.all(
@@ -219,7 +221,7 @@ export default function Page() {
 
   async function bulkDelete(ids: string[]) {
     if (!canEditItems) return;
-    if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+    if (!confirm(t("items.deleteConfirm", { count: ids.length }))) return;
     await Promise.all(ids.map((id) => api.item.delete({ id })));
     clearSelection();
     await load();
@@ -237,196 +239,219 @@ export default function Page() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-5 py-8">
-          <p className="text-sm text-gray-600">Loading…</p>
-        </div>
-      </main>
+      <>
+        <Header />
+        <main className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-5 py-8">
+            <p className="text-sm text-gray-600 dark:text-gray-400">{t("common.loading")}</p>
+          </div>
+        </main>
+      </>
     );
   }
 
   if (!list) {
     return (
-      <main className="min-h-screen bg-gray-50">
-        <div className="max-w-3xl mx-auto px-5 py-8">
-          <a href="/shopping-lists" className="text-sm text-gray-600 hover:underline">
-            ← Back to lists
-          </a>
-          <p className="mt-4 text-sm text-red-600">{loadError || "List not found."}</p>
-        </div>
-      </main>
+      <>
+        <Header />
+        <main className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-5 py-8">
+            <a href="/shopping-lists" className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+              {t("nav.backToLists")}
+            </a>
+            <p className="mt-4 text-sm text-red-600 dark:text-red-400">{loadError || t("common.notFound")}</p>
+          </div>
+        </main>
+      </>
     );
   }
 
   const headerButtonsDisabled = savingStatus || savingName;
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-5 py-8">
-        <div className="mb-4">
-          <a href="/shopping-lists" className="text-sm text-gray-600 hover:underline">
-            ← Back to lists
-          </a>
-        </div>
+    <>
+      <Header />
+      <main className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+        <div className="max-w-3xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
+          <div className="mb-4">
+            <a href="/shopping-lists" className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+              {t("nav.backToLists")}
+            </a>
+          </div>
 
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <div className="text-xs text-gray-500 mb-1">List ID: {list.id}</div>
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t("detail.listId")}: {list.id}</div>
 
-            {editingName ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <input
-                    autoFocus
-                    className="text-3xl font-extrabold bg-white border rounded-lg px-2 py-1"
-                    value={editName}
-                    onChange={(e) => {
-                      setEditName(e.target.value);
-                      setNameError("");
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && saveName()}
-                    disabled={savingName}
-                  />
-                  <button
-                    onClick={saveName}
-                    disabled={savingName}
-                    className="px-3 py-1.5 rounded-lg border bg-white disabled:opacity-50"
-                  >
-                    {savingName ? "Saving…" : "Save"}
-                  </button>
-                  <button
-                    onClick={cancelEditName}
-                    disabled={savingName}
-                    className="px-3 py-1.5 rounded-lg border bg-white disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+              {editingName ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      autoFocus
+                      className="text-2xl sm:text-3xl font-extrabold bg-white dark:bg-[#1a1a1a] border dark:border-gray-700 rounded-lg px-2 py-1 text-gray-900 dark:text-gray-100"
+                      value={editName}
+                      onChange={(e) => {
+                        setEditName(e.target.value);
+                        setNameError("");
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && saveName()}
+                      disabled={savingName}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveName}
+                        disabled={savingName}
+                        className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                      >
+                        {savingName ? t("detail.saving") : t("detail.save")}
+                      </button>
+                      <button
+                        onClick={cancelEditName}
+                        disabled={savingName}
+                        className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50"
+                      >
+                        {t("detail.cancel")}
+                      </button>
+                    </div>
+                  </div>
+                  {nameError && <p className="text-xs text-red-600 dark:text-red-400">{nameError}</p>}
                 </div>
-                {nameError && <p className="text-xs text-red-600">{nameError}</p>}
-              </div>
-            ) : (
-              <h1 className="text-3xl font-extrabold">{list.name}</h1>
-            )}
+              ) : (
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 break-words">{list.name}</h1>
+              )}
 
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-gray-600">Owner: {ownerName}</span>
-              <RoleBadge role={role} />
-              <StatusBadge status={list.status} />
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-600 dark:text-gray-400">{t("detail.owner")}: {ownerName}</span>
+                <RoleBadge role={role} />
+                <StatusBadge status={list.status} />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              {isOwner && !archived && (
+                <button
+                  onClick={startEditName}
+                  disabled={headerButtonsDisabled}
+                  className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50 text-sm sm:text-base"
+                >
+                  {t("detail.editName")}
+                </button>
+              )}
+
+              {isOwner && list.status === "active" && (
+                <button
+                  onClick={() => setArchived(true)}
+                  disabled={headerButtonsDisabled}
+                  className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50 text-sm sm:text-base"
+                >
+                  {savingStatus ? t("detail.archiving") : t("detail.archive")}
+                </button>
+              )}
+
+              {isOwner && list.status === "archived" && (
+                <button
+                  onClick={() => setArchived(false)}
+                  disabled={headerButtonsDisabled}
+                  className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 disabled:opacity-50 text-sm sm:text-base"
+                >
+                  {savingStatus ? t("detail.unarchiving") : t("detail.unarchive")}
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            {isOwner && !archived && (
-              <button
-                onClick={startEditName}
-                disabled={headerButtonsDisabled}
-                className="px-3 py-1.5 rounded-lg border bg-white disabled:opacity-50"
-              >
-                Edit name
-              </button>
-            )}
+          <Section
+            title={t("stats.itemsStatus")}
+          >
+            <ItemsStatusChart items={list.items} />
+          </Section>
 
-            {isOwner && list.status === "active" && (
-              <button
-                onClick={() => setArchived(true)}
-                disabled={headerButtonsDisabled}
-                className="px-3 py-1.5 rounded-lg border bg-white disabled:opacity-50"
+          <Section
+            title={t("items.title")}
+            right={canEditItems ? <ItemAddForm listId={list.id} disabled={!canEditItems} onAdded={load} /> : null}
+          >
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">{t("items.filter")}:</span>
+              <select
+                className="border dark:border-gray-700 rounded-xl px-3 py-1.5 bg-white dark:bg-[#1a1a1a] text-sm text-gray-900 dark:text-gray-100"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as "all" | "open" | "done")}
               >
-                {savingStatus ? "Archiving…" : "Archive"}
-              </button>
-            )}
+                <option value="all">{t("items.filterAll")}</option>
+                <option value="open">{t("items.filterOpen")}</option>
+                <option value="done">{t("items.filterDone")}</option>
+              </select>
+            </div>
 
-            {isOwner && list.status === "archived" && (
-              <button
-                onClick={() => setArchived(false)}
-                disabled={headerButtonsDisabled}
-                className="px-3 py-1.5 rounded-lg border bg-white disabled:opacity-50"
-              >
-                {savingStatus ? "Unarchiving…" : "Unarchive"}
-              </button>
-            )}
-          </div>
+            <ItemsTable
+              items={visibleItems}
+              disabled={!canEditItems}
+              selected={selected}
+              onToggleSelect={toggleSelect}
+              onClear={clearSelection}
+              onEdit={startEditItem}
+              onBulkResolve={bulkResolve}
+              resolveLabel={resolveLabel}
+              onBulkDelete={bulkDelete}
+            />
+          </Section>
+
+          <Section title={t("members.title")}>
+            <MembersTable
+              listId={list.id}
+              ownerId={list.ownerId}
+              memberIds={list.memberIds}
+              canManage={isOwner && !archived}
+              canLeave={isMember && !archived}
+              onChanged={load}
+            />
+          </Section>
         </div>
 
-        <Section
-          title="Items"
-          right={canEditItems ? <ItemAddForm listId={list.id} disabled={!canEditItems} onAdded={load} /> : null}
-        >
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-gray-600">Filter:</span>
-            <select
-              className="border rounded-xl px-3 py-1.5 bg-white text-sm"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "all" | "open" | "done")}
-            >
-              <option value="all">All</option>
-              <option value="open">To buy</option>
-              <option value="done">Completed</option>
-            </select>
-          </div>
+        {editingItem && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/30 p-4">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-lg p-5 w-full max-w-sm">
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{t("items.editItemTitle")}</h2>
 
-          <ItemsTable
-            items={visibleItems}
-            disabled={!canEditItems}
-            selected={selected}
-            onToggleSelect={toggleSelect}
-            onClear={clearSelection}
-            onEdit={startEditItem}
-            onBulkResolve={bulkResolve}
-            resolveLabel={resolveLabel}
-            onBulkDelete={bulkDelete}
-          />
-        </Section>
-
-        <Section title="Members">
-          <MembersTable
-            listId={list.id}
-            ownerId={list.ownerId}
-            memberIds={list.memberIds}
-            canManage={isOwner && !archived}
-            canLeave={isMember && !archived}
-            onChanged={load}
-          />
-        </Section>
-      </div>
-
-      {editingItem && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-2xl shadow-lg p-5 w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">Edit item</h2>
-
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">Product name</label>
-                <input
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={editItemName}
-                  onChange={(e) => setEditItemName(e.target.value)}
-                />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t("items.productName")}</label>
+                  <input
+                    className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100"
+                    value={editItemName}
+                    onChange={(e) => setEditItemName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">{t("items.quantity")}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-gray-100"
+                    value={editItemQty}
+                    onChange={(e) => setEditItemQty(Number(e.target.value) || 0)}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Quantity</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={editItemQty}
-                  onChange={(e) => setEditItemQty(Number(e.target.value) || 0)}
-                />
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={cancelEditItem}
+                  className="px-3 py-1.5 rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100"
+                >
+                  {t("detail.cancel")}
+                </button>
+                <button
+                  onClick={saveEditItem}
+                  className="px-3 py-1.5 rounded-lg border bg-black dark:bg-white text-white dark:text-black"
+                >
+                  {t("detail.save")}
+                </button>
               </div>
             </div>
-
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={cancelEditItem} className="px-3 py-1.5 rounded-lg border bg-white">
-                Cancel
-              </button>
-              <button onClick={saveEditItem} className="px-3 py-1.5 rounded-lg border bg-black text-white">
-                Save
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </main>
+        )}
+      </main>
+    </>
   );
 }

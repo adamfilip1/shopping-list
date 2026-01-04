@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { ShoppingListItem } from "@/lib/types";
+import { useI18n } from "@/contexts/I18nContext";
 
 type Props = {
   items: ShoppingListItem[];
@@ -26,6 +29,7 @@ export default function ItemsTable({
   resolveLabel,
   onBulkDelete,
 }: Props) {
+  const { t } = useI18n();
   const readOnly = disabled;
 
   const selCount = readOnly ? 0 : selected.size;
@@ -49,8 +53,8 @@ export default function ItemsTable({
   return (
     <div className="space-y-3">
       {hasActions && selCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-white px-3 py-2">
-          <span className="text-sm text-gray-600">{selCount} selected</span>
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] px-3 py-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{selCount} {t("items.selected")}</span>
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {singleId && onEdit && (
@@ -58,9 +62,9 @@ export default function ItemsTable({
                 type="button"
                 disabled={readOnly}
                 onClick={() => onEdit(singleId)}
-                className="rounded-lg border bg-white px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Edit item
+                {t("items.editItem")}
               </button>
             )}
 
@@ -69,9 +73,9 @@ export default function ItemsTable({
                 type="button"
                 disabled={readOnly}
                 onClick={() => onBulkResolve(ids)}
-                className="rounded-lg border bg-white px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {resolveLabel ?? "Mark as completed"}
+                {resolveLabel ?? t("items.markCompleted")}
               </button>
             )}
 
@@ -80,30 +84,30 @@ export default function ItemsTable({
                 type="button"
                 disabled={readOnly}
                 onClick={() => onBulkDelete(ids)}
-                className="rounded-lg border bg-white px-3 py-1.5 text-sm text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-red-600 dark:text-red-400 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Delete
+                {t("items.delete")}
               </button>
             )}
 
             <button
               type="button"
               onClick={onClear}
-              className="rounded-lg border bg-white px-3 py-1.5 text-sm"
+              className="rounded-lg border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm"
             >
-              Unselect all
+              {t("items.unselectAll")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border bg-white">
+      <div className="overflow-hidden rounded-2xl border dark:border-gray-700 bg-white dark:bg-[#1a1a1a] overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-left">
+          <thead className="bg-gray-50 dark:bg-gray-800 text-left">
             <tr>
-              <th className="w-28 px-4 py-2">Quantity</th>
-              <th className="px-4 py-2">Product name</th>
-              <th className="w-32 px-4 py-2">Resolved</th>
+              <th className="w-28 px-4 py-2 text-gray-700 dark:text-gray-300">{t("items.quantity")}</th>
+              <th className="px-4 py-2 text-gray-700 dark:text-gray-300">{t("items.productName")}</th>
+              <th className="w-32 px-4 py-2 text-gray-700 dark:text-gray-300">{t("items.resolved")}</th>
             </tr>
           </thead>
           <tbody>
@@ -111,12 +115,12 @@ export default function ItemsTable({
               const isSel = !readOnly && selected.has(i.id);
 
               const interactiveRow =
-                "border-t transition-colors " +
+                "border-t dark:border-gray-700 transition-colors " +
                 (isSel
-                  ? "cursor-pointer bg-indigo-50/70 hover:bg-indigo-50"
-                  : "cursor-pointer hover:bg-gray-50");
+                  ? "cursor-pointer bg-indigo-50/70 dark:bg-indigo-900/20 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                  : "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800");
 
-              const readOnlyRow = "border-t opacity-60";
+              const readOnlyRow = "border-t dark:border-gray-700 opacity-60";
 
               return (
                 <tr
@@ -129,16 +133,16 @@ export default function ItemsTable({
                     onToggleSelect(i.id);
                   }}
                 >
-                  <td className="px-4 py-2 align-middle">{i.quantity}</td>
-                  <td className="px-4 py-2 align-middle">{i.name}</td>
+                  <td className="px-4 py-2 align-middle text-gray-900 dark:text-gray-100">{i.quantity}</td>
+                  <td className="px-4 py-2 align-middle text-gray-900 dark:text-gray-100">{i.name}</td>
                   <td className="px-4 py-2 align-middle">
                     {i.state === "done" ? (
-                      <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                        Done
+                      <span className="inline-flex items-center rounded-full border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:text-green-300">
+                        {t("items.done")}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                        Pending
+                      <span className="inline-flex items-center rounded-full border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                        {t("items.pending")}
                       </span>
                     )}
                   </td>
@@ -148,8 +152,8 @@ export default function ItemsTable({
 
             {sortedItems.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-gray-500">
-                  No items yet.
+                <td colSpan={3} className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                  {t("items.noItems")}
                 </td>
               </tr>
             )}
